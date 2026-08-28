@@ -1,0 +1,34 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - development
+
+  pull_request:
+    branches:
+      - development
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build and Start Containers
+        run: docker compose up --build -d
+
+      - name: Verify Running Containers
+        run: docker ps
+
+      - name: Wait for Application
+        run: sleep 15
+
+      - name: Show Container Logs
+        run: docker compose logs
+
+      - name: Stop and Remove Containers
+        if: always()
+        run: docker compose down

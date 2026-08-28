@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  top: 0px !important;
+  position: static !important;
+}
+
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.animate-marquee-left {
+  animation: marquee-left 30s linear infinite;
+}
+.animate-marquee-right {
+  animation: marquee-right 30s linear infinite;
+}
+.animate-marquee-left:hover,
+.animate-marquee-right:hover {
+  animation-play-state: paused;
+}
+
+/* ---- Google Translate: hide all of its default UI ---- */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+.goog-te-gadget {
+  height: 0;
+  overflow: hidden;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+
+/* ---- Force script-correct fonts only on translated (non-English) pages ---- */
+html:not([lang="en"]) body,
+html:not([lang="en"]) body * {
+  font-family: 'Noto Sans Devanagari', 'Noto Sans Gujarati', 'Noto Sans Tamil',
+    'Noto Sans Telugu', 'Noto Sans Bengali', 'Noto Sans Kannada',
+    'Noto Sans Malayalam', 'Noto Sans Gurmukhi', 'Noto Sans Arabic',
+    'Noto Sans', sans-serif !important;
+}

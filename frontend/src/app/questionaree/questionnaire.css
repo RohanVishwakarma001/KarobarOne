@@ -1,0 +1,74 @@
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+.questionnaire-root {
+  --background: #F8F5F2;
+  --foreground: #3E2723;
+  --card: #FFFFFF;
+  --card-foreground: #3E2723;
+  --popover: #FFFFFF;
+  --popover-foreground: #3E2723;
+  --primary: #6D4C41;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EFEBE9;
+  --secondary-foreground: #3E2723;
+  --muted: #D7CCC8;
+  --muted-foreground: #8D6E63;
+  --accent: #C8A97E;
+  --accent-foreground: #3E2723;
+  --destructive: #B71C1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #D7CCC8;
+  --input: #D7CCC8;
+  --ring: #C8A97E;
+  --radius: 0.75rem;
+  --sidebar: #EFEBE9;
+  --sidebar-foreground: #3E2723;
+  --sidebar-primary: #6D4C41;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #D7CCC8;
+  --sidebar-accent-foreground: #3E2723;
+  --sidebar-border: #D7CCC8;
+  --sidebar-ring: #C8A97E;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.questionnaire-root * {
+  border-color: var(--border);
+}
+
+.questionnaire-root .bg-primary { background-color: var(--primary) !important; }
+.questionnaire-root .bg-primary\/10 { background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important; }
+.questionnaire-root .bg-primary\/90 { background-color: color-mix(in srgb, var(--primary) 90%, transparent) !important; }
+.questionnaire-root .bg-accent { background-color: var(--accent) !important; }
+.questionnaire-root .bg-accent\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+.questionnaire-root .bg-secondary { background-color: var(--secondary) !important; }
+.questionnaire-root .bg-muted { background-color: var(--muted) !important; }
+.questionnaire-root .bg-muted\/50 { background-color: color-mix(in srgb, var(--muted) 50%, transparent) !important; }
+.questionnaire-root .bg-card { background-color: var(--card) !important; }
+.questionnaire-root .bg-background { background-color: var(--background) !important; }
+.questionnaire-root .bg-sidebar { background-color: var(--sidebar) !important; }
+
+.questionnaire-root .text-primary { color: var(--primary) !important; }
+.questionnaire-root .text-primary-foreground { color: var(--primary-foreground) !important; }
+.questionnaire-root .text-accent { color: var(--accent) !important; }
+.questionnaire-root .text-accent-foreground { color: var(--accent-foreground) !important; }
+.questionnaire-root .text-muted-foreground { color: var(--muted-foreground) !important; }
+.questionnaire-root .text-foreground { color: var(--foreground) !important; }
+.questionnaire-root .text-card-foreground { color: var(--card-foreground) !important; }
+.questionnaire-root .text-secondary-foreground { color: var(--secondary-foreground) !important; }
+.questionnaire-root .text-sidebar-foreground { color: var(--sidebar-foreground) !important; }
+.questionnaire-root .text-sidebar-primary-foreground { color: var(--sidebar-primary-foreground) !important; }
+
+.questionnaire-root .border-border { border-color: var(--border) !important; }
+.questionnaire-root .border-primary { border-color: var(--primary) !important; }
+.questionnaire-root .border-input { border-color: var(--input) !important; }
+.questionnaire-root .ring-ring { --tw-ring-color: var(--ring) !important; }
+
+.questionnaire-root .hover\:bg-primary\/90:hover { background-color: color-mix(in srgb, var(--primary) 90%, transparent) !important; }
+.questionnaire-root .hover\:bg-accent\/20:hover { background-color: color-mix(in srgb, var(--accent) 20%, transparent) !important; }
+.questionnaire-root .hover\:bg-muted:hover { background-color: var(--muted) !important; }
+.questionnaire-root .hover\:text-foreground:hover { color: var(--foreground) !important; }
+.questionnaire-root .hover\:text-accent-foreground:hover { color: var(--accent-foreground) !important; }

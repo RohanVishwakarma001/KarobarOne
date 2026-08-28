@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Chat Test UI</title>
+<style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #f0f2f5; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h2 { color: #333; }
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+        padding: 8px;
+        margin: 4px 0;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+    }
+    input, select { width: 100%; }
+    button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 8px 16px;
+        margin-top: 6px;
+    }
+    button:hover { background: #1d4ed8; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover { background: #4b5563; }
+
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+
+    #status {
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 6px;
+    }
+    .connected { background: #dcfce7; color: #15803d; }
+    .disconnected { background: #fee2e2; color: #b91c1c; }
+
+    #receiverInfo {
+        margin-top: 6px;
+        font-size: 13px;
+        font-weight: bold;
+    }
+    .found { color: #15803d; }
+    .notfound { color: #b91c1c; }
+
+    #chatBox {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        background: #fafafa;
+        margin-bottom: 10px;
+    }
+    .msg {
+        padding: 6px 10px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        max-width: 70%;
+        font-size: 14px;
+    }
+    .sent { background: #2563eb; color: white; margin-left: auto; text-align: right; }
+    .received { background: #e5e7eb; color: #111; }
+    .error { background: #fee2e2; color: #b91c1c; }
+    .info { background: #fef9c3; color: #854d0e; font-style: italic; }
+
+    .msg-wrapper { display: flex; }
+    .sent-wrapper { justify-content: flex-end; }
+
+    .messageInputRow { display: flex; gap: 6px; }
+    .messageInputRow input { flex: 1; }
+    .messageInputRow button { margin-top: 0; }
+
+    pre {
+        background: #111;
+        color: #0f0;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        overflow-x: auto;
+        max-height: 100px;
+    }
+
+    .hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin: 2px 0 4px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>🛒 Live Chat — Test UI</h2>
+
+    <!-- AUTH SECTION -->
+    <div class="card" id="authCard">
+        <h3>Step 1 — Register / Login</h3>
+
+        <div class="row">
+            <div>
+                <h4>Register</h4>
+                <input id="regName" placeholder="Name">
+                <input id="regEmail" placeholder="Email">
+                <input id="regPassword" placeholder="Password" type="password">
+                <select id="regRole" onchange="toggleStoreIdRegister()">
+                    <option value="customer">Customer</option>
+                    <option value="store_owner">Store Owner</option>
+                    <option value="support_agent">Support Agent</option>
+                </select>
+
+                <!-- Store ID field: sirf store_owner ke liye dikhega -->
+                <div id="regStoreIdRow" style="display:none;">
+                    <p class="hint">Store Owner ke liye apna unique Store ID daalo (e.g. 101)</p>
+                    <input id="regStoreId" placeholder="Store ID (e.g. 101)" type="number">
+                </div>
+
+                <button onclick="register()">Register</button>
+            </div>
+            <div>
+                <h4>Login</h4>
+                <input id="loginEmail" placeholder="Email">
+                <input id="loginPassword" placeholder="Password" type="password">
+                <button onclick="login()">Login</button>
+            </div>
+        </div>
+
+        <h4>Server URL</h4>
+        <input id="serverUrl" value="http://127.0.0.1:8000">
+
+        <h4>Auth Result</h4>
+        <pre id="authResult">-- response yahan dikhega --</pre>
+    </div>
+
+    <!-- CONNECT SECTION -->
+    <div class="card">
+        <h3>Step 2 — Connect to WebSocket</h3>
+        <div class="row">
+            <div>
+                <label>Your User ID</label>
+                <input id="myUserId" placeholder="e.g. 3">
+            </div>
+            <div>
+                <label>Your Role</label>
+                <input id="myRole" placeholder="e.g. customer" readonly>
+            </div>
+        </div>
+        <div id="myStoreIdRow" style="display:none; margin-top: 6px;">
+            <label>Your Store ID</label>
+            <input id="myStoreId" placeholder="(store_owner ka store ID)" readonly>
+        </div>
+        <label style="margin-top: 8px; display:block;">JWT Token</label>
+        <input id="token" placeholder="Token will auto-fill after login/register">
+
+        <button onclick="connectWS()">Connect</button>
+        <button class="secondary" onclick="disconnectWS()">Disconnect</button>
+        <div id="status" class="disconnected">Disconnected</div>
+    </div>
+
+    <!-- CHAT SECTION -->
+    <div class="card">
+        <h3>Step 3 — Chat</h3>
+
+        <div class="row">
+            <div>
+                <label>Chat Type</label>
+                <select id="chatType" onchange="toggleChatInputs()">
+                    <option value="customer_owner">customer_owner</option>
+                    <option value="owner_support">owner_support</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Customer ke liye: Store ID se owner dhundo -->
+        <div id="storeIdLookupRow" style="margin-top: 8px;">
+            <label>Store ID (Owner ko dhundne ke liye)</label>
+            <p class="hint">Owner ka Store ID daalo — system automatically us store ke owner se connect karega</p>
+            <div style="display:flex; gap:6px;">
+                <input id="storeLookupId" placeholder="e.g. 101" type="number" style="flex:1;">
+                <button class="secondary" style="margin-top:0;" onclick="lookupStore()">Find Store</button>
+            </div>
+        </div>
+
+        <!-- Owner ke liye: Customer email se dhundo -->
+        <div id="emailLookupRow" style="margin-top: 8px; display:none;">
+            <label>Customer Email</label>
+            <p class="hint">Customer ka email daalo — system uska ID resolve kar lega</p>
+            <div style="display:flex; gap:6px;">
+                <input id="receiverEmail" placeholder="e.g. customer@test.com" style="flex:1;">
+                <button class="secondary" style="margin-top:0;" onclick="lookupReceiver()">Find Customer</button>
+            </div>
+        </div>
+
+        <div id="receiverInfo" style="margin-top: 6px; font-size: 13px; font-weight: bold;">-- receiver dhundo --</div>
+
+        <div id="chatBox" style="margin-top: 10px;"></div>
+
+        <div class="messageInputRow">
+            <input id="messageText" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let ws = null;
+let receiverId = null;      // email/store lookup ke baad set hota hai
+let resolvedStoreId = null; // customer ke liye store_id (lookup ke baad set hota hai)
+
+function getServerUrl() {
+    return document.getElementById("serverUrl").value.trim().replace(/\/$/, "");
+}
+
+function getWsUrl() {
+    return getServerUrl().replace("http://", "ws://").replace("https://", "wss://");
+}
+
+// ----------- REGISTER: store_owner select karne par Store ID field show karo -----------
+function toggleStoreIdRegister() {
+    const role = document.getElementById("regRole").value;
+    const storeIdRow = document.getElementById("regStoreIdRow");
+    storeIdRow.style.display = (role === "store_owner") ? "block" : "none";
+}
+
+// ----------- AUTH -----------
+async function register() {
+    const role = document.getElementById("regRole").value;
+    const body = {
+        name: document.getElementById("regName").value,
+        email: document.getElementById("regEmail").value,
+        password: document.getElementById("regPassword").value,
+        role: role
+    };
+
+    // store_owner ke liye storeId bhi bhejo
+    if (role === "store_owner") {
+        const storeId = document.getElementById("regStoreId").value;
+        if (!storeId) {
+            alert("Store Owner ke liye Store ID zaroori hai!");
+            return;
+        }
+        body.storeId = parseInt(storeId);
+    }
+
+    try {
+        const res = await fetch(`${getServerUrl()}/api/v1/chat-auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        showAuthResult(data, role);
+    } catch (err) {
+        document.getElementById("authResult").textContent = "Error: " + err;
+    }
+}
+
+async function login() {
+    const body = {
+        email: document.getElementById("loginEmail").value,
+        password: document.getElementById("loginPassword").value
+    };
+
+    try {
+        const res = await fetch(`${getServerUrl()}/api/v1/chat-auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        showAuthResult(data, null);
+    } catch (err) {
+        document.getElementById("authResult").textContent = "Error: " + err;
+    }
+}
+
+function showAuthResult(data, fallbackRole) {
+    document.getElementById("authResult").textContent = JSON.stringify(data, null, 2);
+
+    if (data.accessToken) {
+        document.getElementById("token").value = data.accessToken;
+        document.getElementById("myUserId").value = data.userId;
+        document.getElementById("myRole").value = data.role || fallbackRole || "";
+
+        // Agar store_owner hai to uska storeId bhi dikhao
+        const storeIdRow = document.getElementById("myStoreIdRow");
+        if (data.storeId) {
+            document.getElementById("myStoreId").value = data.storeId;
+            storeIdRow.style.display = "block";
+        } else {
+            storeIdRow.style.display = "none";
+        }
+
+        // Chat inputs bhi update karo role ke hisaab se
+        toggleChatInputs();
+    }
+}
+
+// ----------- CHAT TYPE / ROLE KE HISAAB SE INPUTS TOGGLE -----------
+function toggleChatInputs() {
+    const myRole = document.getElementById("myRole").value;
+    const chatType = document.getElementById("chatType").value;
+
+    const storeIdLookupRow = document.getElementById("storeIdLookupRow");
+    const emailLookupRow = document.getElementById("emailLookupRow");
+
+    // Reset receiver
+    receiverId = null;
+    resolvedStoreId = null;
+    document.getElementById("receiverInfo").textContent = "-- receiver dhundo --";
+    document.getElementById("receiverInfo").className = "";
+
+    if (chatType === "owner_support") {
+        // owner_support: hamesha email se dhundo (store concept nahi)
+        storeIdLookupRow.style.display = "none";
+        emailLookupRow.style.display = "block";
+        document.getElementById("emailLookupRow").querySelector("label").textContent = "Support Agent Email";
+        document.getElementById("receiverEmail").placeholder = "e.g. support@test.com";
+    } else if (myRole === "customer") {
+        // customer_owner + customer: store_id se owner dhundo
+        storeIdLookupRow.style.display = "block";
+        emailLookupRow.style.display = "none";
+    } else {
+        // customer_owner + store_owner: email se customer dhundo
+        storeIdLookupRow.style.display = "none";
+        emailLookupRow.style.display = "block";
+        document.getElementById("emailLookupRow").querySelector("label").textContent = "Customer Email";
+        document.getElementById("receiverEmail").placeholder = "e.g. customer@test.com";
+    }
+}
+
+// ----------- STORE LOOKUP: storeId se owner dhundo (Customer use karta hai) -----------
+async function lookupStore() {
+    const storeId = document.getElementById("storeLookupId").value.trim();
+    const infoEl = document.getElementById("receiverInfo");
+
+    if (!storeId) {
+        infoEl.textContent = "-- Store ID daalo --";
+        infoEl.className = "";
+        receiverId = null;
+        resolvedStoreId = null;
+        return;
+    }
+
+    try {
+        const res = await fetch(`${getServerUrl()}/api/v1/chat-auth/stores/lookup?storeId=${encodeURIComponent(storeId)}`);
+        const data = await res.json();
+
+        if (data.found) {
+            receiverId = data.userId;             // Owner ka userId
+            resolvedStoreId = parseInt(storeId);   // Store ID (payload mein jayega)
+            infoEl.textContent = `✓ Store Found: Owner = ${data.ownerName} (ID: ${data.userId})`;
+            infoEl.className = "found";
+        } else {
+            receiverId = null;
+            resolvedStoreId = null;
+            infoEl.textContent = "✗ Is storeId ka koi owner nahi mila";
+            infoEl.className = "notfound";
+        }
+    } catch (err) {
+        receiverId = null;
+        resolvedStoreId = null;
+        infoEl.textContent = "Error: " + err;
+        infoEl.className = "notfound";
+    }
+}
+
+// ----------- EMAIL LOOKUP: email se userId dhundo (Owner/Support use karta hai) -----------
+async function lookupReceiver() {
+    const email = document.getElementById("receiverEmail").value.trim();
+    const infoEl = document.getElementById("receiverInfo");
+
+    if (!email) {
+        infoEl.textContent = "-- email daalo --";
+        infoEl.className = "";
+        receiverId = null;
+        return;
+    }
+
+    try {
+        const res = await fetch(`${getServerUrl()}/api/v1/chat-auth/users/lookup?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+
+        if (data.found) {
+            receiverId = data.userId;
+            infoEl.textContent = `✓ Found: ${data.name} (ID: ${data.userId}, Role: ${data.role})`;
+            infoEl.className = "found";
+        } else {
+            receiverId = null;
+            infoEl.textContent = "✗ User not found";
+            infoEl.className = "notfound";
+        }
+    } catch (err) {
+        receiverId = null;
+        infoEl.textContent = "Error: " + err;
+        infoEl.className = "notfound";
+    }
+}
+
+// ----------- WEBSOCKET -----------
+function connectWS() {
+    const userId = document.getElementById("myUserId").value;
+    const token = document.getElementById("token").value;
+
+    if (!userId || !token) {
+        alert("User ID aur Token dono chahiye!");
+        return;
+    }
+
+    ws = new WebSocket(`${getWsUrl()}/api/v1/ws/chat/${userId}?token=${token}`);
+
+    ws.onopen = () => {
+        setStatus(true);
+        addMessage("Connected to server", "info");
+        toggleChatInputs(); // Role ke hisaab se inputs set karo
+    };
+
+    ws.onclose = () => {
+        setStatus(false);
+        addMessage("Disconnected from server", "info");
+    };
+
+    ws.onerror = () => {
+        addMessage("WebSocket error (check console / token / user_id)", "error");
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.event === "message") {
+            addMessage(`From ${data.senderId}: ${data.message}`, "received");
+        } else if (data.event === "message_sent") {
+            addMessage(`✓ Sent (msg_id: ${data.messageId}, conv_id: ${data.conversationId})`, "info");
+        } else if (data.event === "error") {
+            addMessage(`Error: ${data.detail}`, "error");
+        } else {
+            addMessage(JSON.stringify(data), "info");
+        }
+    };
+}
+
+function disconnectWS() {
+    if (ws) { ws.close(); ws = null; }
+    setStatus(false);
+}
+
+function setStatus(connected) {
+    const el = document.getElementById("status");
+    if (connected) {
+        el.textContent = "Connected";
+        el.className = "connected";
+    } else {
+        el.textContent = "Disconnected";
+        el.className = "disconnected";
+    }
+}
+
+// ----------- SEND MESSAGE -----------
+function sendMessage() {
+    const text = document.getElementById("messageText").value.trim();
+    const chatType = document.getElementById("chatType").value;
+    const myRole = document.getElementById("myRole").value;
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("WebSocket connected nahi hai!");
+        return;
+    }
+    if (!text) {
+        alert("Message likho!");
+        return;
+    }
+    if (!receiverId) {
+        alert("Pehle receiver dhundo (Find Store / Find Customer)!");
+        return;
+    }
+
+    const payload = {
+        event: "message",
+        chatType: chatType,
+        message: text
+    };
+
+    if (chatType === "customer_owner" && myRole === "customer") {
+        // Customer: storeId bhejo (receiverId chat.py khud resolve karega)
+        if (!resolvedStoreId) {
+            alert("Store ID se owner dhundo pehle!");
+            return;
+        }
+        payload.storeId = resolvedStoreId;
+        // receiverId bhi bhejo (optional safety)
+        payload.receiverId = receiverId;
+    } else {
+        // Owner ya support: receiverId bhejo
+        payload.receiverId = receiverId;
+    }
+
+    ws.send(JSON.stringify(payload));
+    addMessage(`You: ${text}`, "sent");
+    document.getElementById("messageText").value = "";
+}
+
+function addMessage(text, type) {
+    const chatBox = document.getElementById("chatBox");
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "msg-wrapper" + (type === "sent" ? " sent-wrapper" : "");
+
+    const msg = document.createElement("div");
+    msg.className = "msg " + type;
+    msg.textContent = text;
+
+    wrapper.appendChild(msg);
+    chatBox.appendChild(wrapper);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: karobar-next:latest
+
+    container_name: karobar-next-container
+
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      NODE_ENV: production

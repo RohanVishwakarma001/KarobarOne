@@ -1,0 +1,66 @@
+[project]
+name = "karobarone-backend"
+version = "0.1.0"
+description = "Production-grade FastAPI backend with PostgreSQL"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.0",
+    "pydantic-settings>=2.3.0",
+    "structlog>=24.4.0",
+    "python-dotenv>=1.0.0",
+    "pyjwt>=2.8.0",
+    "bcrypt>=4.0.0",
+    "passlib>=1.7.4",
+    "python-jose[cryptography]>=3.3.0",
+    "reportlab>=4.0.0",
+    "pandas>=2.0.0",
+    "streamlit>=1.38",
+    "langgraph",
+    "langchain-core",
+    "langchain-cerebras",
+    "langchain-community",
+    "langchain-tavily",
+    "tavily-python",
+    "pillow",
+    "huggingface-hub",
+    "langchain-google-genai",
+    "email-validator>=2.3.0",
+    "aiosqlite>=0.22.1",
+    "psycopg2-binary>=2.9.12",
+    "razorpay>=2.0.1",
+    "google-auth>=2.55.2",
+    "google-auth-oauthlib>=1.4.0",
+    "google-auth-httplib2>=0.4.0",
+    "google-api-python-client>=2.198.0",
+    "dropbox>=12.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+    "ruff>=0.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "customerEngine", "serviceEngine"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

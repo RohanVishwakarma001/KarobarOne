@@ -15,17 +15,43 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import getCurrentUserId
 from app.core.exceptions import TokenExpiredError, TokenInvalidError
 from app.core.exceptionsCompat import AuthenticationError, BusinessValidationError, ConflictError, NotFoundError
 from app.core.security import createAccessToken, createRefreshToken, decodeToken
 from app.core.tokenBlacklist import revoke_token
+from app.db.models.role import Role
+from app.db.models.userRoleMapping import UserRoleMapping
 from app.db.session import getDb
 from app.schemas.otpVerification import OtpRequest, OtpVerify
 from app.schemas.user import UserCreate
 from app.services.otpVerificationService import OtpVerificationService
 from app.services.userService import UserService
+
+
+async def _getRoleAssignment(session: AsyncSession, userId: uuid.UUID) -> tuple[str, str | None] | None:
+    """
+    Looks up the caller's (single, MVP-assumed) role assignment so it can be
+    embedded into freshly-issued tokens. Returns (roleCode-lowercased, tenantId)
+    or None if the user hasn't been assigned a role yet (e.g. hasn't finished
+    business/store onboarding).
+    """
+    mapping = (
+        await session.execute(
+            select(UserRoleMapping, Role.roleCode)
+            .join(Role, Role.id == UserRoleMapping.roleId)
+            .where(UserRoleMapping.userId == userId)
+            .limit(1)
+        )
+    ).first()
+    if mapping is None:
+        return None
+    userRoleMapping, roleCode = mapping
+    tenantId = str(userRoleMapping.tenantId) if userRoleMapping.tenantId else None
+    return roleCode.lower(), tenantId
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 securityScheme = HTTPBearer()
@@ -192,8 +218,11 @@ async def verifyLogin(
     userService = UserService(session)
     user = await userService.recordLogin(otp.userId)
 
-    accessToken = createAccessToken(subject=str(user.id))
-    refreshToken = createRefreshToken(subject=str(user.id))
+    assignment = await _getRoleAssignment(session, user.id)
+    role, tenantId = assignment if assignment else (None, None)
+
+    accessToken = createAccessToken(subject=str(user.id), role=role, tenantId=tenantId)
+    refreshToken = createRefreshToken(subject=str(user.id), role=role, tenantId=tenantId)
 
     return TokenResponse(
         accessToken=accessToken,

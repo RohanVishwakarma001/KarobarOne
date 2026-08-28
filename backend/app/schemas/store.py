@@ -53,8 +53,8 @@ class StoreCreate(BaseModel):
     # Active publishing status flag
     isActive: bool = True
     
-    # Store verification/approval status
-    approvalStatus: str = Field("DRAFT", max_length=20)
+    # Store verification/approval status (DB check constraint only allows PENDING|APPROVED|REJECTED)
+    approvalStatus: str = Field("PENDING", max_length=20)
 
 
 # ── Update Request Schema ──────────────────────────────────────────

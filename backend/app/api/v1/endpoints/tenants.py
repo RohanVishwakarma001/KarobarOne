@@ -8,12 +8,19 @@ Handles SaaS tenant registration, listing, retrieval, profile updates, and cance
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import DBSession
+from app.core.dependencies import getCurrentUserWithRole
 from app.core.rbac import Roles, require_role
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.tenant import TenantCreate, TenantRead, TenantReadCompact, TenantUpdate
+from app.schemas.tenant import (
+    TenantCreate,
+    TenantRead,
+    TenantReadCompact,
+    TenantRegistrationResponse,
+    TenantUpdate,
+)
 from app.services.tenantService import TenantService
 
 # Set up routing scope and OpenAPI tagging namespace.
@@ -32,14 +39,35 @@ router = APIRouter(
 # ------------------------------------------------------------------------------
 @router.post(
     "",
-    response_model=TenantRead,
+    response_model=TenantRegistrationResponse,
     status_code=201,
-    dependencies=[Depends(require_role(Roles.PLATFORM_OWNER))],
-    summary="Register a new tenant",
+    summary="Register a new tenant (self-service for a logged-in user, or on behalf of another business for platform staff)",
 )
-async def createTenant(data: TenantCreate, db: DBSession):
+async def createTenant(
+    data: TenantCreate,
+    db: DBSession,
+    current_user: dict = Depends(getCurrentUserWithRole),
+):
     service = TenantService(db)
-    return await service.createTenant(data)
+
+    if current_user.get("role") in (Roles.PLATFORM_OWNER, Roles.PLATFORM_STAFF):
+        tenant = await service.createTenant(data)
+        return TenantRegistrationResponse(tenant=TenantRead.model_validate(tenant))
+
+    if current_user.get("tenantId"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have a business registered to your account.",
+        )
+
+    tenant, accessToken, refreshToken = await service.registerTenantForUser(
+        data, uuid.UUID(str(current_user["userId"]))
+    )
+    return TenantRegistrationResponse(
+        tenant=TenantRead.model_validate(tenant),
+        accessToken=accessToken,
+        refreshToken=refreshToken,
+    )
 
 
 # ------------------------------------------------------------------------------

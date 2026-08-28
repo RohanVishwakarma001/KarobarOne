@@ -23,8 +23,14 @@ from typing import Any, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
+
 from app.core.exceptionsCompat import ConflictError, NotFoundError
+from app.core.rbac import Roles
+from app.core.security import createAccessToken, createRefreshToken
+from app.db.models.role import Role
 from app.db.models.tenant import Tenant
+from app.db.models.userRoleMapping import UserRoleMapping
 from app.repositories.tenantRepository import TenantRepository
 from app.schemas.tenant import TenantCreate, TenantUpdate
 
@@ -62,6 +68,44 @@ class TenantService:
         result = await self.repo.create(tenant)
         await self.session.commit()
         return await self.repo.getWithRelations(result.id)
+
+    async def registerTenantForUser(
+        self, data: TenantCreate, ownerUserId: uuid.UUID
+    ) -> tuple[Tenant, str, str]:
+        """
+        Self-service tenant registration: creates the tenant, assigns the
+        caller the STORE_OWNER role scoped to it, then mints a fresh token
+        pair carrying that role + tenantId so the caller's existing
+        (role-less) token can be swapped for one that passes require_role
+        checks on stores/etc. without a re-login.
+        """
+        tenant = await self.createTenant(data)
+
+        role = (
+            await self.session.execute(select(Role).where(Role.roleCode == "STORE_OWNER"))
+        ).scalar_one_or_none()
+        if role is None:
+            role = Role(roleName="Store Owner", roleCode="STORE_OWNER", isSystemRole=True)
+            self.session.add(role)
+            await self.session.flush()
+
+        self.session.add(
+            UserRoleMapping(
+                userId=ownerUserId,
+                roleId=role.id,
+                tenantId=tenant.id,
+                assignedBy=ownerUserId,
+            )
+        )
+        await self.session.commit()
+
+        accessToken = createAccessToken(
+            subject=str(ownerUserId), role=Roles.STORE_OWNER, tenantId=str(tenant.id)
+        )
+        refreshToken = createRefreshToken(
+            subject=str(ownerUserId), role=Roles.STORE_OWNER, tenantId=str(tenant.id)
+        )
+        return tenant, accessToken, refreshToken
 
     async def getTenant(self, tenantId: uuid.UUID) -> Tenant:
         """

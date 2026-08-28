@@ -176,10 +176,27 @@ async def validationExceptionHandler(
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "Request validation failed",
-                "details": exc.errors(),
+                "details": _sanitizeValidationErrors(exc.errors()),
             }
         },
     )
+
+
+def _sanitizeValidationErrors(errors: list[dict]) -> list[dict]:
+    """
+    pydantic's error dicts can carry a live exception instance under
+    ctx.error (e.g. a raw ValueError raised by a @field_validator) — that's
+    not JSON-serializable, which crashes this handler outright (a 500
+    instead of the intended 422). Stringify it instead.
+    """
+    sanitized = []
+    for err in errors:
+        err = dict(err)
+        ctx = err.get("ctx")
+        if isinstance(ctx, dict) and isinstance(ctx.get("error"), BaseException):
+            err["ctx"] = {**ctx, "error": str(ctx["error"])}
+        sanitized.append(err)
+    return sanitized
 
 
 async def unhandledExceptionHandler(

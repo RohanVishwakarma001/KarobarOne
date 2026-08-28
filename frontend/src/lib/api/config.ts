@@ -3,6 +3,9 @@ const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 /** Base URL for the ported commerce suite (`/api/v1/github/*`) — unauthenticated per backend README. */
 export const GITHUB_API_BASE_URL = `${rawBaseUrl.replace(/\/$/, "")}/api/v1/github`;
 
+/** Base URL for the core platform API (auth, tenants, stores, ...) — Bearer-token authenticated. */
+export const CORE_API_BASE_URL = `${rawBaseUrl.replace(/\/$/, "")}/api/v1`;
+
 export const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? "";
 export const STORE_ID = process.env.NEXT_PUBLIC_STORE_ID ?? "";
 

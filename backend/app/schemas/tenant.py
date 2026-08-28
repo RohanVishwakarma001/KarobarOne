@@ -159,6 +159,21 @@ class TenantRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TenantRegistrationResponse(BaseModel):
+    """
+    Returned by POST /tenants. When a regular (non-platform) user registers
+    their own business, accessToken/refreshToken carry the freshly-assigned
+    STORE_OWNER role + tenantId so the frontend can swap its stored session
+    without forcing a re-login. Platform staff creating a tenant on someone
+    else's behalf get tenant-only (tokens are null).
+    """
+
+    tenant: TenantRead
+    accessToken: str | None = None
+    refreshToken: str | None = None
+    tokenType: str = "bearer"
+
+
 class TenantReadCompact(BaseModel):
     """Compact tenant response for list endpoints."""
 

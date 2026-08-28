@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     debug: bool = False
     logLevel: str = "INFO"
     apiPrefix: str = "/api/v1"
+    corsOrigins: str = "http://localhost:3000"
 
     # Default IDs
     defaultTenantId: str = "e2e56225-8da9-4414-9d71-d31f368d9ac7"
@@ -64,6 +65,11 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    @property
+    def corsOriginsList(self) -> list[str]:
+        """Comma-separated corsOrigins env value, split into a list."""
+        return [origin.strip() for origin in self.corsOrigins.split(",") if origin.strip()]
 
 
 @lru_cache

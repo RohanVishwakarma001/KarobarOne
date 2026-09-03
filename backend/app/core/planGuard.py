@@ -154,8 +154,17 @@ class PlanGuard:
                 )
         except PlanLimitExceeded:
             raise
-        except Exception:
-            pass
+        except Exception as e:
+            # Deliberately fails OPEN (doesn't block product creation) rather
+            # than closed on an infra hiccup here — productsPorted runs on a
+            # separate DB engine (see docs/api-mapping/catalog.md), so a
+            # transient failure reaching it shouldn't break checkout/product
+            # creation entirely. But it was previously a bare `except: pass`,
+            # meaning that trade-off was invisible — this at least makes it
+            # loud so a persistent failure (as opposed to one transient blip)
+            # gets noticed instead of silently letting Free-plan limits go
+            # unenforced indefinitely.
+            logger.error("Product limit check failed — allowing the request through", tenantId=str(tenant_id), error=str(e))
 
     async def check_service_limit(self, tenant_id: uuid.UUID) -> None:
         """

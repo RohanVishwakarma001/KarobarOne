@@ -4,13 +4,14 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowLeft, Mail, Pencil, Phone, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Mail, MapPin, Pencil, Phone, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
 
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useCustomer } from "@/hooks/use-customers";
 import { CustomerStatusBadge } from "@/components/customers/status-badge";
 import { EditCustomerDialog } from "@/components/customers/edit-customer-dialog";
 import { DeleteCustomerDialog } from "@/components/customers/delete-customer-dialog";
+import { AddressManagerSheet } from "@/components/customers/AddressManagerSheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -63,6 +64,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
   const { session, ready } = useRequireAuth();
   const tenantId = session?.tenantId ?? "";
   const [editOpen, setEditOpen] = useState(false);
+  const [addressManagerOpen, setAddressManagerOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: customer, isLoading, isError, error } = useCustomer(tenantId, ready ? customerId : null);
@@ -139,6 +141,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
               </div>
 
               <div className="flex shrink-0 gap-2">
+                <Button variant="outline" onClick={() => setAddressManagerOpen(true)}>
+                  <MapPin className="h-4 w-4" />
+                  Addresses
+                </Button>
                 <Button variant="outline" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" />
                   Edit
@@ -187,6 +193,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ custo
 
       {customer && (
         <>
+          <AddressManagerSheet open={addressManagerOpen} onOpenChange={setAddressManagerOpen} customer={customer} tenantId={tenantId} />
           <EditCustomerDialog open={editOpen} onOpenChange={setEditOpen} tenantId={tenantId} customer={customer} />
           <DeleteCustomerDialog
             open={deleteOpen}

@@ -28,7 +28,7 @@ class SafeBaseModel(BaseModel):
 # ═══════════════════════════════════════════════
 VALID_ENTITY_TYPES = {
     'STORE', 'SECTION', 'PRODUCT', 'SERVICE', 'BLOG', 'CATEGORY',
-    'OFFER', 'POLICY', 'FORM', 'MEDIA', 'BRAND'
+    'OFFER', 'POLICY', 'FORM', 'MEDIA', 'BRAND', 'CUSTOMER'
 }
 
 VALID_OPERATION_TYPES = {'CREATE', 'UPDATE', 'DELETE'}

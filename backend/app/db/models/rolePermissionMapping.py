@@ -20,7 +20,9 @@ from app.db.base import BaseModelCreated as BaseModel
 # Python attribute names are camelCase; DB column names stay snake_case.
 # --------------------------------------------------------------------------------
 class RolePermissionMapping(BaseModel):
-    __tablename__ = "role_permission_mapping"
+    # Real table is camelCase ("rolePermissionMapping") — see the matching
+    # note on TenantPlanHistory's __tablename__ for the recurring pattern.
+    __tablename__ = "rolePermissionMapping"
 
     # UniqueConstraint: Prevents granting the same permission to a role more than once.
     __table_args__ = (

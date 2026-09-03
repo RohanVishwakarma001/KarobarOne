@@ -15,12 +15,18 @@ from app.db.base import BaseUUID
 # Uses 'BaseUUID' for primary key index representation.
 # --------------------------------------------------------------------------------
 class TenantPlanHistory(BaseUUID):
-    __tablename__ = "tenant_plan_history"
+    # Real table is camelCase ("tenantPlanHistory") — same recurring
+    # tablename-typo pattern as auditLogs/statusHistory/approvalRequests/
+    # entityVersions/reviewQueue/customerAddresses/customerSessions
+    # elsewhere in this codebase, all fixed the same way.
+    __tablename__ = "tenantPlanHistory"
 
     # tenantId: The tenant associated with this audit entry.
     # ondelete="CASCADE" automatically clears history logs if the parent tenant is deleted.
+    # Real columns on this table are camelCase quoted identifiers (confirmed
+    # live via information_schema — same pattern as subscription_plans and
+    # billing_rules), so no explicit snake_case column-name override here.
     tenantId: Mapped[uuid.UUID] = mapped_column(
-        "tenant_id",
         UUID(as_uuid=True),
         ForeignKey(
             "tenants_details.id",
@@ -31,7 +37,6 @@ class TenantPlanHistory(BaseUUID):
 
     # oldPlanId: The previous plan ID (nullable, e.g. when subscribing for the first time).
     oldPlanId: Mapped[uuid.UUID | None] = mapped_column(
-        "old_plan_id",
         UUID(as_uuid=True),
         ForeignKey("subscription_plans.id"),
         nullable=True,
@@ -39,7 +44,6 @@ class TenantPlanHistory(BaseUUID):
 
     # newPlanId: The new subscription plan ID (nullable, e.g. when cancelling subscription).
     newPlanId: Mapped[uuid.UUID | None] = mapped_column(
-        "new_plan_id",
         UUID(as_uuid=True),
         ForeignKey("subscription_plans.id"),
         nullable=True,
@@ -47,21 +51,18 @@ class TenantPlanHistory(BaseUUID):
 
     # changedBy: UUID of the actor (user/agent) who triggered this change
     changedBy: Mapped[uuid.UUID] = mapped_column(
-        "changed_by",
         UUID(as_uuid=True),
         nullable=False,
     )
 
     # changeReason: Text explanation of the upgrade, downgrade, or cancellation
     changeReason: Mapped[str | None] = mapped_column(
-        "change_reason",
         String(255),
         nullable=True,
     )
 
     # changedAt: Audit timestamp tracked automatically on record creation
     changedAt: Mapped[datetime] = mapped_column(
-        "changed_at",
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,

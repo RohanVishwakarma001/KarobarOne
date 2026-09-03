@@ -154,15 +154,20 @@ def require_permission(permission_code: str) -> Callable:
         from app.db.models.storeStaffPermission import StoreStaffPermission
         from app.db.models.permission import Permission
 
+        # NOTE: this was previously broken at the Python level (not just a DB
+        # mismatch): Permission has no `.code` attribute (it's
+        # `.permissionCode`, mapped to the `permission_code` column), and
+        # StoreStaffPermission has no `.deletedAt` at all (it uses
+        # BaseModelCreated, createdAt only — no soft-delete on this table).
+        # Either would have raised AttributeError before a single query ran.
         result = await db.execute(
-            select(Permission.code)
+            select(Permission.permissionCode)
             .join(
                 StoreStaffPermission,
                 StoreStaffPermission.permissionId == Permission.id,
             )
             .where(
                 StoreStaffPermission.userId == uuid.UUID(str(user_id)),
-                StoreStaffPermission.deletedAt.is_(None),
             )
         )
         user_permissions = {row[0] for row in result.fetchall()}
@@ -174,3 +179,44 @@ def require_permission(permission_code: str) -> Callable:
             )
         return current_user
     return _permission_guard
+
+
+# ──────────────────────────────────────────────
+# Feature-Flag Guard (subscription-plan gating)
+# ──────────────────────────────────────────────
+
+def require_feature(feature_code: str, tenant_id_param: str = "tenantId") -> Callable:
+    """
+    FastAPI dependency factory that gates a route on the caller's tenant
+    having access to a plan feature — wraps PlanGuard.check_feature_access
+    (app/core/planGuard.py) as request-level enforcement, the same shape as
+    require_role/require_permission above, rather than ASGI middleware:
+    which features are locked depends on the specific resource being
+    created, which only the route (not a blanket middleware) knows.
+
+    Resolves the tenant from the path param named by `tenant_id_param` if
+    present on the route, else falls back to the caller's own JWT tenantId
+    claim — mirrors require_tenant_match's resolution order.
+
+    Usage:
+        @router.post("/blog/generate", dependencies=[Depends(require_feature("blog"))])
+    """
+    from fastapi import Request
+
+    async def _feature_guard(
+        request: Request,
+        current_user: dict = Depends(getCurrentUserWithRole),
+        db: AsyncSession = Depends(getDb),
+    ) -> dict:
+        from app.core.planGuard import PlanGuard
+
+        raw_tenant_id = request.path_params.get(tenant_id_param) or current_user.get("tenantId")
+        if not raw_tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tenant context is required for this operation.",
+            )
+        guard = PlanGuard(db)
+        await guard.check_feature_access(uuid.UUID(str(raw_tenant_id)), feature_code)
+        return current_user
+    return _feature_guard

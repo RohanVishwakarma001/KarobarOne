@@ -195,6 +195,25 @@ class PickupLocationRequest(BaseModel):
     pin_code: str
 
 
+class ShiprocketWebhookPayload(BaseModel):
+    """
+    Shiprocket's tracking-update webhook body. Field names/casing here
+    follow Shiprocket's documented payload; confirm against your dashboard's
+    webhook test payload before relying on any field not used below —
+    `awb`/`current_status` are the two this router actually reads.
+    """
+
+    awb: Optional[str] = None
+    order_id: Optional[str] = None
+    current_status: Optional[str] = None
+    current_status_id: Optional[int] = None
+    shipment_status: Optional[str] = None
+    courier_name: Optional[str] = None
+    etd: Optional[str] = None
+
+    model_config = {"extra": "allow"}
+
+
 class PickupLocationResponse(BaseModel):
 
     success: bool

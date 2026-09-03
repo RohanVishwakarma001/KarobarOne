@@ -31,10 +31,14 @@ from app.db.base import Base
 # approval_requests
 # ─────────────────────────────────────────────
 class ApprovalRequest(Base):
-    __tablename__ = "approval_requests"
+    # Real table is camelCase ("approvalRequests") — same tablename-typo
+    # pattern as AuditLog/StatusHistory/CustomerAddress/CustomerSession
+    # elsewhere in this codebase, all fixed the same way. Every query
+    # against this model has always raised UndefinedTableError until now.
+    __tablename__ = "approvalRequests"
     __table_args__ = (
         CheckConstraint(
-            "entity_type IN ('STORE','SECTION','PRODUCT','SERVICE','BLOG','CATEGORY','OFFER','POLICY','FORM','MEDIA','BRAND')",
+            "entity_type IN ('STORE','SECTION','PRODUCT','SERVICE','BLOG','CATEGORY','OFFER','POLICY','FORM','MEDIA','BRAND','CUSTOMER')",
             name="ck_approvalRequests_entity_type"
         ),
         CheckConstraint(
@@ -85,7 +89,7 @@ class ApprovalRequestVersion(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    approvalRequestId = Column("approval_request_id", UUID(as_uuid=True), ForeignKey("approval_requests.id"), nullable=False)
+    approvalRequestId = Column("approval_request_id", UUID(as_uuid=True), ForeignKey("approvalRequests.id"), nullable=False)
     versionNumber = Column("version_number", Integer, nullable=False)
     approvalStatus = Column("approval_status", String(20), nullable=False)
     reviewedBy = Column("reviewed_by", UUID(as_uuid=True), nullable=True)  # FK → users.id
@@ -99,11 +103,12 @@ class ApprovalRequestVersion(Base):
 # entity_versions
 # ─────────────────────────────────────────────
 class EntityVersion(Base):
-    __tablename__ = "entity_versions"
+    # See the matching note on ApprovalRequest above — real table is "entityVersions".
+    __tablename__ = "entityVersions"
     __table_args__ = (
         UniqueConstraint("entity_type", "entity_id", "version_number", name="uq_entity_version_number"),
         CheckConstraint(
-            "entity_type IN ('STORE','SECTION','PRODUCT','SERVICE','BLOG','CATEGORY','OFFER','POLICY','FORM','MEDIA','BRAND')",
+            "entity_type IN ('STORE','SECTION','PRODUCT','SERVICE','BLOG','CATEGORY','OFFER','POLICY','FORM','MEDIA','BRAND','CUSTOMER')",
             name="ck_entityVersions_entity_type"
         ),
     )
@@ -185,7 +190,12 @@ class ReviewQueue(Base):
     Platform staff are assigned via the assignedTo field.
     Priority levels (HIGH, MEDIUM, LOW) control review ordering.
     """
-    __tablename__ = "review_queue"
+    # Unlike its siblings above, this table doesn't exist yet under EITHER
+    # naming convention ("review_queue" or "reviewQueue" — checked live) —
+    # not a tablename typo this time, just never created. Named camelCase to
+    # match every other table in this approval/audit subsystem
+    # (approvalRequests, entityVersions, auditLogs, statusHistory).
+    __tablename__ = "reviewQueue"
     __table_args__ = (
         UniqueConstraint("approval_request_id", name="uq_review_queue_approval_request"),
         CheckConstraint(
@@ -197,7 +207,7 @@ class ReviewQueue(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     approvalRequestId = Column(
         "approval_request_id", UUID(as_uuid=True),
-        ForeignKey("approval_requests.id", ondelete="CASCADE"),
+        ForeignKey("approvalRequests.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
     assignedTo = Column("assigned_to", UUID(as_uuid=True), nullable=True, index=True)  # FK → users.id

@@ -153,7 +153,8 @@ export interface Shipment {
 }
 export const createShipment = (input: {
   order_id: string;
-  shipping_partner_id: string;
+  shipment_request_id: string;
+  shipping_partner_id?: string;
   shipment_number: string;
   tracking_number?: string;
   tracking_url?: string;

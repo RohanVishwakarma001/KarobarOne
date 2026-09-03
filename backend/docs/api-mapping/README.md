@@ -15,7 +15,7 @@ Legend:
 - **INTERNAL** — not a competitor to the ACTIVE router; a different concern
   that happens to share a URL segment name.
 
-Detail docs: [`customers.md`](./customers.md) · [`auth.md`](./auth.md) · [`catalog.md`](./catalog.md)
+Detail docs: [`customers.md`](./customers.md) · [`auth.md`](./auth.md) · [`catalog.md`](./catalog.md) · [`commerce.md`](./commerce.md)
 
 ## Quick reference
 
@@ -25,6 +25,9 @@ Detail docs: [`customers.md`](./customers.md) · [`auth.md`](./auth.md) · [`cat
 | Customers | `/api/v1/customers/*` | `/api/v1/customer-engine/customers/{id}` (GET/PUT), `/customer-engine/addresses/*`, `/customer-engine/customers/{id}/addresses` | `/api/v1/customer-engine/guest-checkout`, `/activate`, `/media` (no ACTIVE equivalent) |
 | Customer addresses | `/api/v1/addresses/*` | (see customer-engine address routes above) | — |
 | Brands / Categories | `/api/v1/brands`, `/api/v1/categories` | none removed | `/api/v1/catalog/brands`, `/api/v1/catalog/categories` — different DB engine, see catalog.md |
+| Cart / Checkout | `/api/v1/cart/*` | `/api/v1/github/cart/*`, `cart-items/*`, `cart-coupons/*`, `abandoned-carts/*`, `checkout/*` | — |
+| Orders | `/api/v1/orders/*` | `/api/v1/github/orders/*`, `order-items/*`, `order-status/*`, `order-cancellations/*` | `/api/v1/github/order-returns/*` (no ACTIVE equivalent) |
+| Payments | `/api/v1/payments/razorpay/*` | `/api/v1/github/payments/*`, `payment-methods/*`, `payment-refunds/*` | `/api/v1/github/payment-audit-logs/*`, `subscription-payments/*`, gateway settlement/reconciliation routers (no ACTIVE equivalent) |
 
 ## Enforcement mechanism used
 

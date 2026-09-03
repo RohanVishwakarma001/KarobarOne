@@ -82,21 +82,20 @@ from .productCompareItemRouter import router as productCompareItemRouter
 from .productRouter import router as productRouter
 
 # ── Mount Routers ──
-# customerRouter and authRouter are intentionally NOT in this list — see below.
-# They're independent duplicates of the ACTIVE /api/v1/customers and /api/v1/auth
-# routers (customerRouter maps its own SQLAlchemy model onto the *same* physical
-# `customers` table via a separate declarative base — see
-# app/db/models/github/customer.py vs app/db/models/customers.py — and authRouter
-# runs a fully synchronous session path against its own `users` table). Neither
-# is enforced by a DB foreign key from cart/order (customer_id there is a bare
-# UUID column), so they're not load-bearing for the rest of this module.
-# Deprecated rather than removed since other /github/* routers may still pass
-# raw customer_id UUIDs around. See docs/api-mapping/customers.md and
-# docs/api-mapping/auth.md.
+# customerRouter, authRouter, and the cart/order/payment routers below are
+# intentionally NOT in this list — see the two deprecated blocks at the
+# bottom. customerRouter/authRouter: independent duplicates of the ACTIVE
+# /api/v1/customers and /api/v1/auth routers (customerRouter maps its own
+# SQLAlchemy model onto the *same* physical `customers` table via a separate
+# declarative base — see app/db/models/github/customer.py vs
+# app/db/models/customers.py — and authRouter runs a fully synchronous
+# session path against its own `users` table). Neither is enforced by a DB
+# foreign key from cart/order (customer_id there is a bare UUID column), so
+# they're not load-bearing for the rest of this module. See
+# docs/api-mapping/customers.md and docs/api-mapping/auth.md.
 routers = [
-    cartRouter, cartItemRouter, cartCouponRouter, abandonedCartRouter, checkoutRouter,
-    orderRouter, orderItemRouter, orderStatusRouter, orderCancellationRouter, orderReturnRouter, orderRefundRouter,
-    paymentRouter, paymentMethodRouter, paymentRefundRouter, paymentAuditLogRouter, subscriptionPaymentRouter,
+    orderReturnRouter,
+    paymentAuditLogRouter, subscriptionPaymentRouter,
     gatewaySettlementRouter, gatewaySettlementItemRouter, gatewayWebhookEventRouter,
     paymentReconciliationBatchRouter, paymentReconciliationItemRouter, revenueSummaryRouter,
     commissionRouter, sellerPayoutRouter,
@@ -116,3 +115,22 @@ for r in routers:
 # DEPRECATED — duplicate customer/auth data paths, see block comment above.
 githubRouter.include_router(customerRouter, deprecated=True)
 githubRouter.include_router(authRouter, deprecated=True)
+
+# DEPRECATED — superseded by the ACTIVE /api/v1/{cart,orders,payments}
+# routers (app/api/v1/endpoints/{cart,orders,payments}.py): async, tenant-
+# validated, staff-bearer-gated status transitions, a real Razorpay webhook
+# with HMAC verification and idempotency, and no silent mock-fallback on
+# gateway failure (see app/services/razorpayClient.py vs the sync/unscoped/
+# fail-open app/services/github/razorpayService.py these used). Kept mounted
+# — not removed — since existing carts/orders/payments created through these
+# read/write the same physical tables the ACTIVE routers use, so in-flight
+# data isn't orphaned. orderReturnRouter, paymentAuditLogRouter,
+# subscriptionPaymentRouter and the gateway/reconciliation routers above are
+# NOT superseded (no ACTIVE equivalent exists yet) and stay ACTIVE.
+# See docs/api-mapping/commerce.md.
+for r in [
+    cartRouter, cartItemRouter, cartCouponRouter, abandonedCartRouter, checkoutRouter,
+    orderRouter, orderItemRouter, orderStatusRouter, orderCancellationRouter,
+    paymentRouter, paymentMethodRouter, paymentRefundRouter,
+]:
+    githubRouter.include_router(r, deprecated=True)

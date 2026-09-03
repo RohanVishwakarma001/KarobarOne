@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { CartSheetProvider } from "@/components/providers/cart-sheet-provider";
+import { CartSheet } from "@/components/commerce/CartSheet";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,7 +33,16 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          {children}
+          <CartSheetProvider>
+            {children}
+            <CartSheet />
+            {/* The floating trigger (components/commerce/CartSheet.tsx's
+                CartTriggerButton) is intentionally NOT mounted globally here —
+                it would show on every route including the marketing site and
+                store-owner-dashboard. Drop <CartTriggerButton /> into the
+                storefront's own layout/navbar instead; it's already wired to
+                CartSheetProvider from here. */}
+          </CartSheetProvider>
           <Toaster position="top-right" />
         </QueryProvider>
       </body>

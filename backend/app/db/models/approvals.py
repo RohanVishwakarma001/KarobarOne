@@ -123,7 +123,13 @@ class EntityVersion(Base):
 # audit_logs
 # ─────────────────────────────────────────────
 class AuditLog(Base):
-    __tablename__ = "audit_logs"
+    # Real table is camelCase ("auditLogs") — this snake_case name has never
+    # matched, meaning every AuditLog() insert anywhere in the app has always
+    # raised UndefinedTableError (confirmed live; see
+    # app/productsPorted/routers/products.py's audit-log try/except blocks,
+    # added defensively before this root cause was found). Fixing here makes
+    # audit logging actually work everywhere it's already wired, not just there.
+    __tablename__ = "auditLogs"
     __table_args__ = (
         CheckConstraint(
             "action_type IN ('CREATE','UPDATE','DELETE','RESTORE','LOGIN','LOGOUT','APPROVE','REJECT','PAYMENT','REFUND','CANCEL','RETURN')",
@@ -149,7 +155,8 @@ class AuditLog(Base):
 # status_history
 # ─────────────────────────────────────────────
 class StatusHistory(Base):
-    __tablename__ = "status_history"
+    # See the matching note on AuditLog above — real table is "statusHistory".
+    __tablename__ = "statusHistory"
     __table_args__ = (
         CheckConstraint(
             "entity_type IN ('PRODUCT','SERVICE','ORDER','BOOKING','CUSTOMER','SHIPMENT','OFFER','STORE','BRAND','CATEGORY')",

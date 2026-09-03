@@ -58,6 +58,7 @@ from app.api.v1.endpoints import websiteMedia
 from app.api.v1.endpoints import websiteAIGeneration
 
 from app.api.v1.endpoints import domainVerification
+from app.api.v1.endpoints import cart, orders, payments
 
 apiRouter = APIRouter()
 
@@ -65,6 +66,11 @@ apiRouter = APIRouter()
 apiRouter.include_router(health.router)
 apiRouter.include_router(auth.router)
 apiRouter.include_router(tenantTest.router)
+
+# Cart, Orders & Payments (Priority 4 — see docs/api-mapping/commerce.md)
+apiRouter.include_router(cart.router)
+apiRouter.include_router(orders.router)
+apiRouter.include_router(payments.router)
 
 # Brands & Approvals
 apiRouter.include_router(brands.router)

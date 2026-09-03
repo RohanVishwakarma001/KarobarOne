@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     emailPassword: str = ""
     emailFromName: str = "KarobarOne"
 
+    # ──────────────────────────────────────
+    # Razorpay (app/services/razorpayClient.py — the ACTIVE payments router's
+    # gateway client). Left blank means the client fails closed
+    # (PaymentGatewayNotConfigured), never a fabricated success — see that
+    # module's docstring for why that matters here.
+    # ──────────────────────────────────────
+    razorpayKeyId: str = ""
+    razorpayKeySecret: str = ""
+    razorpayWebhookSecret: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -56,8 +56,25 @@ class Settings(BaseSettings):
     refreshTokenExpireDays: int = 7
 
     # ──────────────────────────────────────
-    # Email / OTP delivery (SMTP — free via a Gmail app password)
+    # Email / OTP delivery
     # ──────────────────────────────────────
+    # Primary: Resend's HTTP API (app/core/mailer.py) — goes over port 443,
+    # which (unlike raw SMTP) isn't blocked by Render's outbound network.
+    # Confirmed live: a raw SMTP connect from Render hung for 2+ minutes
+    # instead of failing, freezing the whole single-worker event loop for
+    # every user, not just the one registering — see mailer.py's docstring.
+    resendApiKey: str = ""
+    # Resend requires either a verified sending domain or this shared test
+    # address; onboarding@resend.dev works out of the box but (per Resend's
+    # own restriction) can only deliver to the email the Resend account was
+    # signed up with — verify a real domain in the Resend dashboard once
+    # you need to email arbitrary user addresses, then update this.
+    resendFromEmail: str = "onboarding@resend.dev"
+
+    # Fallback: SMTP (e.g. a Gmail app password) — kept for local/dev use
+    # where outbound SMTP isn't blocked. Used automatically ONLY when
+    # resendApiKey is unset; never as a silent fallback in an environment
+    # that already configured Resend.
     smtpHost: str = "smtp.gmail.com"
     smtpPort: int = 465
     emailAddress: str = ""

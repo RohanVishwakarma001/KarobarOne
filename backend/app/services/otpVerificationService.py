@@ -19,6 +19,7 @@ Handles generating and verifying OTP codes for login, signup, reset, and
 transaction flows.
 """
 
+import asyncio
 import hashlib
 import secrets
 import uuid
@@ -82,14 +83,21 @@ class OtpVerificationService:
         )
         await self.repo.create(otp)
         await self.session.commit()
-        self._deliverOtp(user, data.purpose, rawCode)
+        await self._deliverOtp(user, data.purpose, rawCode)
         return otp, rawCode
 
-    def _deliverOtp(self, user: User, purpose: str, rawCode: str) -> None:
+    async def _deliverOtp(self, user: User, purpose: str, rawCode: str) -> None:
         """
         Emails the raw OTP code to the user. Delivery failures are logged
         and swallowed by sendEmail — they must not fail the request that
         generated the OTP.
+
+        Runs sendEmail's blocking smtplib call in a worker thread
+        (asyncio.to_thread), not directly on this coroutine — smtplib has no
+        default socket timeout, so a network-level hang (e.g. an outbound
+        SMTP port silently dropped by the host, confirmed live on Render)
+        would otherwise block this single-worker event loop entirely,
+        freezing every other in-flight request, not just this one.
         """
         subject = OTP_EMAIL_SUBJECTS.get(purpose, "Your KarobarOne verification code")
         body = (
@@ -98,7 +106,7 @@ class OtpVerificationService:
             f"This code expires in {OTP_TTL_MINUTES} minutes.\n\n"
             "If you didn't request this, you can safely ignore this email."
         )
-        sendEmail(user.email, subject, body)
+        await asyncio.to_thread(sendEmail, user.email, subject, body)
 
     async def verifyOtp(self, data: OtpVerify) -> OtpVerification:
         """

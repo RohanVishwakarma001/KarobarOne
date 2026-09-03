@@ -1,0 +1,7 @@
+# Test-only dependencies — not needed to run the app, only to test it.
+# pyproject.toml's [tool.pytest.ini_options] already configures asyncio_mode
+# and the fixture/test loop scope for these.
+-r requirements.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0

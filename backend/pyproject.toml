@@ -64,3 +64,12 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# The app's DB engines (app.db.session.getEngine(), app.productsPorted.core.
+# database.engine) are lazily-created module-level singletons bound to
+# whichever event loop first uses them. pytest-asyncio's per-function-scoped
+# loop (its default) tears that loop down after every test, so the second
+# test to touch a given engine fails with "Event loop is closed" mid-request
+# or mid-teardown. Session-scoped loops keep one loop alive for the whole
+# run, matching the engines' actual lifetime.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"

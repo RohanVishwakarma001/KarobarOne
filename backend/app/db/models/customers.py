@@ -72,7 +72,11 @@ class Customer(Base):
 # customerAddresses
 # ─────────────────────────────────────────────
 class CustomerAddress(Base):
-    __tablename__ = "customer_addresses"
+    # Real table is camelCase ("customerAddresses") — every other
+    # customer_* table is snake_case; this one and CustomerSession below
+    # were provisioned with a naming typo. Columns inside are correctly
+    # snake_case (verified against information_schema), just the table name.
+    __tablename__ = "customerAddresses"
     __table_args__ = (
         CheckConstraint(
             "address_type IN ('SHIPPING','BILLING')", name="ck_address_type"
@@ -103,7 +107,8 @@ class CustomerAddress(Base):
 # customerSessions
 # ─────────────────────────────────────────────
 class CustomerSession(Base):
-    __tablename__ = "customer_sessions"
+    # See the matching note on CustomerAddress above — real table is "customerSessions".
+    __tablename__ = "customerSessions"
     __table_args__ = (
         {"extend_existing": True}
     )

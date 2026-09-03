@@ -12,6 +12,7 @@ produce consistent, structured error responses.
 
 Error response schema:
 {
+    "success": false,
     "error": {
         "code": "NOT_FOUND",
         "message": "Resource not found",
@@ -140,10 +141,11 @@ async def appExceptionHandler(request: Request, exc: AppException) -> JSONRespon
     return JSONResponse(
         status_code=exc.statusCode,
         content={
+            "success": False,
             "error": {
                 "code": exc.errorCode,
                 "message": exc.message,
-            }
+            },
         },
     )
 
@@ -173,11 +175,12 @@ async def validationExceptionHandler(
     return JSONResponse(
         status_code=422,
         content={
+            "success": False,
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "Request validation failed",
                 "details": _sanitizeValidationErrors(exc.errors()),
-            }
+            },
         },
     )
 
@@ -224,10 +227,11 @@ async def unhandledExceptionHandler(
     return JSONResponse(
         status_code=500,
         content={
+            "success": False,
             "error": {
                 "code": "INTERNAL_ERROR",
                 "message": "An unexpected error occurred",
-            }
+            },
         },
     )
 
@@ -245,10 +249,11 @@ async def valueErrorHandler(
     return JSONResponse(
         status_code=400,
         content={
+            "success": False,
             "error": {
                 "code": "BAD_REQUEST",
                 "message": str(exc),
-            }
+            },
         },
     )
 
@@ -266,9 +271,10 @@ async def integrityErrorHandler(
     return JSONResponse(
         status_code=409,
         content={
+            "success": False,
             "error": {
                 "code": "CONFLICT",
                 "message": "Database constraint violation. A related record may not exist or a duplicate exists.",
-            }
+            },
         },
     )

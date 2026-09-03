@@ -12,12 +12,14 @@ Resolves the active tenant from incoming HTTP requests via:
 """
 
 import ipaddress
+from uuid import UUID
+
 import structlog
-from fastapi import Request
+from fastapi import Depends, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-from app.core.exceptions import TenantNotFoundError
+from app.core.exceptions import BadRequestError, TenantNotFoundError
 from app.core.tenant import resetCurrentTenantId, setCurrentTenantId
 
 logger = structlog.get_logger(__name__)
@@ -106,6 +108,29 @@ def getTenantId(request: Request) -> str:
         logger.warning("Tenant resolution failed for request", path=request.url.path)
         raise TenantNotFoundError("Could not resolve tenant from X-Tenant-ID header or subdomain")
     return tenantId
+
+
+def getTenantIdAsUUID(tenantId: str = Depends(getTenantId)) -> UUID:
+    """
+    FastAPI dependency: resolves the tenant (via getTenantId — X-Tenant-ID header
+    or subdomain) and parses it as a UUID.
+
+    Purpose:
+        Typed tenant-isolation dependency for routes whose tenant_id column is a
+        UUID (e.g. customers, orders). Today X-Tenant-ID / the resolved subdomain
+        slug is expected to already be the tenant's UUID, not a human slug — this
+        just centralizes that assumption with a clear error instead of every
+        route doing `UUID(tid)` inline.
+
+    Exceptions:
+        BadRequestError: If the resolved tenant value isn't a valid UUID.
+    """
+    try:
+        return UUID(tenantId)
+    except ValueError as exc:
+        raise BadRequestError(
+            f"X-Tenant-ID must be a valid UUID, got {tenantId!r}"
+        ) from exc
 
 
 class TenantMiddleware(BaseHTTPMiddleware):

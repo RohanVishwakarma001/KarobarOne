@@ -210,14 +210,19 @@ class ProductAttributeMappingResponse(ProductAttributeMappingBase):
 
 # ── VARIANT SCHEMAS ──────────────────────────
 class VariantBase(SafeBaseModel):
-    sku: str = Field(..., max_length=100)
-    price: float = Field(..., ge=0.0)
-    inventory: int = Field(default=0, ge=0)
-    attributes: Optional[Dict[str, Any]] = None  # e.g., {"color": "Red", "size": "L"}
+    sku: str = Field(..., max_length=100, examples=["TSHIRT-RED-M"])
+    price: float = Field(..., ge=0.0, examples=[999.0])
+    inventory: int = Field(default=0, ge=0, examples=[25])
+    attributes: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description='Selected option per axis, e.g. {"Size": "M", "Color": "Red"}',
+        examples=[{"Size": "M", "Color": "Red"}],
+    )
 
 
 class VariantCreate(VariantBase):
     productId: UUID
+    tenantId: UUID = Field(..., description="Must match the product's tenant — mismatches are rejected with 403")
 
 
 class VariantUpdate(SafeBaseModel):
@@ -230,11 +235,17 @@ class VariantUpdate(SafeBaseModel):
 class VariantResponse(VariantBase):
     id: UUID
     productId: UUID
+    tenantId: Optional[UUID] = None
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
     deletedAt: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+class VariantCreateForProduct(VariantBase):
+    """Same as VariantCreate but without productId/tenantId — both come from the URL/session on the nested /products/{productId}/variants routes."""
+    pass
 
 
 # ── PRODUCT IMAGE SCHEMAS ────────────────────
@@ -244,6 +255,7 @@ class ProductImageBase(SafeBaseModel):
     isPrimary: bool = False
     fileSize: int = Field(..., ge=0)
     fileType: str = Field(..., max_length=100)
+    variantId: Optional[UUID] = Field(default=None, description="Scopes this image to one variant instead of the whole product")
 
 
 class ProductImageCreate(ProductImageBase):

@@ -38,8 +38,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.productsPorted.core.config import settings
 # Import get_db session dependency injection helper
 from app.productsPorted.core.database import get_db
-# Import ProductImage, Product, and MediaFile models
-from app.productsPorted.models.models import ProductImage, Product, MediaFile
+# Import ProductImage, Product, Variant, and MediaFile models
+from app.productsPorted.models.models import ProductImage, Product, Variant, MediaFile
 # Import schemas from app schemas
 from app.productsPorted.schemas.schemas import ProductImageCreate, ProductImageResponse
 
@@ -96,6 +96,14 @@ async def uploadToDropbox(file: UploadFile, productId: UUID) -> str:
         )
 
 
+async def validateVariantBelongsToProduct(db: AsyncSession, productId: UUID, variantId: Optional[UUID]) -> None:
+    if variantId is None:
+        return
+    res = await db.execute(select(Variant).where(Variant.id == variantId, Variant.productId == productId))
+    if not res.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="variantId does not belong to this product")
+
+
 async def validateImageLimits(db: AsyncSession, productId: UUID, newFileSize: int, newContentType: str):
     """
     Validates plan limits (max images per product), file size, and file type.
@@ -139,6 +147,7 @@ async def create_image_metadata(payload: ProductImageCreate, db: AsyncSession = 
 
     # Validate limits
     await validateImageLimits(db, payload.productId, payload.fileSize, payload.fileType)
+    await validateVariantBelongsToProduct(db, payload.productId, payload.variantId)
 
     # If isPrimary is True, set all other images of this product to isPrimary=False
     if payload.isPrimary:
@@ -152,6 +161,7 @@ async def create_image_metadata(payload: ProductImageCreate, db: AsyncSession = 
     if db.bind.dialect.name == "sqlite":
         img = ProductImage(
             productId=payload.productId,
+            variantId=payload.variantId,
             url=payload.url,
             altText=payload.altText,
             isPrimary=payload.isPrimary,
@@ -174,9 +184,10 @@ async def create_image_metadata(payload: ProductImageCreate, db: AsyncSession = 
         )
         db.add(mediaFile)
         await db.flush()
-        
+
         img = ProductImage(
             productId=payload.productId,
+            variantId=payload.variantId,
             url=str(mediaFile.id),
             altText=payload.altText,
             isPrimary=payload.isPrimary,
@@ -223,6 +234,7 @@ def validateFileMagicBytes(contents: bytes, filename: Optional[str] = None):
 @router.post("/upload", response_model=ProductImageResponse, status_code=status.HTTP_201_CREATED)
 async def upload_product_image(
     productId: UUID = Form(...),
+    variantId: Optional[UUID] = Form(None),
     altText: Optional[str] = Form(None),
     isPrimary: bool = Form(False),
     file: UploadFile = File(...),
@@ -235,6 +247,8 @@ async def upload_product_image(
     product = prodRes.scalar_one_or_none()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    await validateVariantBelongsToProduct(db, productId, variantId)
 
     # Calculate checksum hash and file size
     contents = await file.read()
@@ -259,6 +273,7 @@ async def upload_product_image(
         mockSavedUrl = await uploadToDropbox(file, productId)
         img = ProductImage(
             productId=productId,
+            variantId=variantId,
             url=mockSavedUrl,
             altText=altText,
             isPrimary=isPrimary,
@@ -303,6 +318,7 @@ async def upload_product_image(
 
         img = ProductImage(
             productId=productId,
+            variantId=variantId,
             url=str(mediaFileId),
             altText=altText,
             isPrimary=isPrimary,
@@ -319,9 +335,9 @@ async def upload_product_image(
     return img
 
 
-# ── LIST IMAGES FOR PRODUCT ──────────────────
+# ── LIST IMAGES FOR PRODUCT (optionally scoped to one variant) ──
 @router.get("/", response_model=List[ProductImageResponse])
-async def list_product_images(productId: UUID, db: AsyncSession = Depends(get_db)):
+async def list_product_images(productId: UUID, variantId: Optional[UUID] = None, db: AsyncSession = Depends(get_db)):
     # Verify product exists
     prodRes = await db.execute(
         select(Product).where(Product.id == productId, Product.deletedAt.is_(None))
@@ -329,9 +345,10 @@ async def list_product_images(productId: UUID, db: AsyncSession = Depends(get_db
     if not prodRes.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Product not found")
 
-    res = await db.execute(
-        select(ProductImage).where(ProductImage.productId == productId)
-    )
+    stmt = select(ProductImage).where(ProductImage.productId == productId)
+    if variantId is not None:
+        stmt = stmt.where(ProductImage.variantId == variantId)
+    res = await db.execute(stmt)
     return res.scalars().all()
 
 

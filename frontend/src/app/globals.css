@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 
+/*
+ * theme.css defines the full shadcn/ui token set (--card, --muted, --border,
+ * --destructive, --popover, ...) that every component in components/ui/*
+ * reads via bg-muted / text-foreground / border-input etc. It previously
+ * existed in the repo but was never imported anywhere, so those tokens were
+ * undefined and every shadcn primitive rendered unstyled wherever it was
+ * used (confirmed: only the /questionaree flow and the design1-4 mockups
+ * reference them — no real, shipped route outside those did). Importing it
+ * here fixes that rather than introducing new risk.
+ */
+@import "./theme.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -19,6 +31,56 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   top: 0px !important;
   position: static !important;
+}
+
+/* ---- Motion design tokens (mirrors src/lib/motion.ts's JS-side springs/eases) ---- */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.15, 1);
+  --duration-instant: 120ms;
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 420ms;
+  --glow-brand: 0 0 0 1px rgba(91, 78, 249, 0.35), 0 8px 24px -8px rgba(91, 78, 249, 0.35);
+}
+
+/* ---- Shimmer skeleton (components/ui/skeleton.tsx) ---- */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; }
+}
+
+/* ---- Interactive card: hover lift + keyboard-focus glow ---- */
+.interactive-card {
+  transition: transform var(--duration-fast) var(--ease-out-quart), box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+.interactive-card:hover {
+  transform: translateY(-2px);
+}
+.interactive-card:focus-visible {
+  outline: none;
+  box-shadow: var(--glow-brand);
+}
+@media (prefers-reduced-motion: reduce) {
+  .interactive-card,
+  .interactive-card:hover {
+    transform: none;
+    transition: box-shadow var(--duration-fast) var(--ease-out-quart);
+  }
 }
 
 @keyframes marquee-left {

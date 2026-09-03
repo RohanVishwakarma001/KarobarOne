@@ -82,6 +82,17 @@ from .productCompareItemRouter import router as productCompareItemRouter
 from .productRouter import router as productRouter
 
 # ── Mount Routers ──
+# customerRouter and authRouter are intentionally NOT in this list — see below.
+# They're independent duplicates of the ACTIVE /api/v1/customers and /api/v1/auth
+# routers (customerRouter maps its own SQLAlchemy model onto the *same* physical
+# `customers` table via a separate declarative base — see
+# app/db/models/github/customer.py vs app/db/models/customers.py — and authRouter
+# runs a fully synchronous session path against its own `users` table). Neither
+# is enforced by a DB foreign key from cart/order (customer_id there is a bare
+# UUID column), so they're not load-bearing for the rest of this module.
+# Deprecated rather than removed since other /github/* routers may still pass
+# raw customer_id UUIDs around. See docs/api-mapping/customers.md and
+# docs/api-mapping/auth.md.
 routers = [
     cartRouter, cartItemRouter, cartCouponRouter, abandonedCartRouter, checkoutRouter,
     orderRouter, orderItemRouter, orderStatusRouter, orderCancellationRouter, orderReturnRouter, orderRefundRouter,
@@ -94,10 +105,14 @@ routers = [
     bookingRouter, bookingCancellationRouter, bookingRefundRouter, bookingFeedbackRouter, appointmentRouter, calendarRouter,
     offerRouter, offerTargetRouter, offerCustomerSegmentRouter, offerExclusionRouter,
     couponRouter, couponRedemptionRouter,
-    customerRouter, authRouter, notificationRouter, otpRouter,
+    notificationRouter, otpRouter,
     wishlistRouter, wishlistItemRouter, savedForLaterRouter, recentlyViewedProductRouter,
     productCompareListRouter, productCompareItemRouter, productRouter,
 ]
 
 for r in routers:
     githubRouter.include_router(r)
+
+# DEPRECATED — duplicate customer/auth data paths, see block comment above.
+githubRouter.include_router(customerRouter, deprecated=True)
+githubRouter.include_router(authRouter, deprecated=True)

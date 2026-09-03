@@ -141,7 +141,10 @@ async def create_product(payload: ProductCreate, db: AsyncSession = Depends(get_
         db.add(audit_entry)
         await db.commit()
     except Exception:
-        pass
+        # Without this rollback the session is left in PendingRollbackError
+        # state (a failed flush aborts the transaction), which then fails
+        # every subsequent query on it — including the relation-load below.
+        await db.rollback()
 
     # Load relations for response
     stmt = select(Product).options(
@@ -255,21 +258,28 @@ async def update_product(
 
     newSnapshot = {k: str(v) if isinstance(v, UUID) else v for k, v in updateData.items()}
 
-    # Audit log creation
-    audit_entry = AuditLog(
-        tenantId=product.tenantId,
-        entityType="PRODUCT",
-        entityId=product.id,
-        actionType="UPDATE",
-        oldValue=oldSnapshot,
-        newValue=newSnapshot,
-        changedFields=list(updateData.keys()),
-        performedBy=product.createdBy or product.tenantId,
-    )
-    db.add(audit_entry)
-
     await db.commit()
     await db.refresh(product)
+
+    # Audit log creation (best-effort: AuditLog is a main-app model — see the
+    # matching note on create_product below — its table name doesn't match
+    # what's actually provisioned in this database, so this must not be able
+    # to break the update itself; failures are swallowed after rollback).
+    try:
+        audit_entry = AuditLog(
+            tenantId=product.tenantId,
+            entityType="PRODUCT",
+            entityId=product.id,
+            actionType="UPDATE",
+            oldValue=oldSnapshot,
+            newValue=newSnapshot,
+            changedFields=list(updateData.keys()),
+            performedBy=product.createdBy or product.tenantId,
+        )
+        db.add(audit_entry)
+        await db.commit()
+    except Exception:
+        await db.rollback()
     return product
 
 
@@ -284,19 +294,23 @@ async def delete_product(productId: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
 
     product.deletedAt = datetime.now(timezone.utc).replace(tzinfo=None)
-    
-    # Audit log creation for delete
-    audit_entry = AuditLog(
-        tenantId=product.tenantId,
-        entityType="PRODUCT",
-        entityId=product.id,
-        actionType="DELETE",
-        oldValue={"name": product.name, "sku": product.sku},
-        performedBy=product.createdBy or product.tenantId,
-    )
-    db.add(audit_entry)
-
     await db.commit()
+
+    # Audit log creation for delete (best-effort — see the note on
+    # update_product above; must not be able to break the delete itself).
+    try:
+        audit_entry = AuditLog(
+            tenantId=product.tenantId,
+            entityType="PRODUCT",
+            entityId=product.id,
+            actionType="DELETE",
+            oldValue={"name": product.name, "sku": product.sku},
+            performedBy=product.createdBy or product.tenantId,
+        )
+        db.add(audit_entry)
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
 
 # ── SEARCH / LIST PRODUCTS (PAGINATED & SORTED) ──────

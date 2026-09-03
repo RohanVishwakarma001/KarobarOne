@@ -179,10 +179,12 @@ from app.productsPorted.routers.attributes import router as portedAttributesRout
 from app.productsPorted.routers.images import router as portedImagesRouter
 from app.productsPorted.routers.shipping import router as portedShippingRouter
 from app.productsPorted.routers.brands import router as portedBrandsRouter
+from app.productsPorted.routers.variants import productVariantsRouter as portedProductVariantsRouter
 
 apiRouter.include_router(portedCategoriesRouter, prefix="/catalog")
 apiRouter.include_router(portedProductsRouter, prefix="/catalog")
 apiRouter.include_router(portedVariantsRouter, prefix="/catalog")
+apiRouter.include_router(portedProductVariantsRouter, prefix="/catalog")  # nested /catalog/products/{id}/variants
 apiRouter.include_router(portedAttributesRouter, prefix="/catalog")
 apiRouter.include_router(portedImagesRouter, prefix="/catalog")
 apiRouter.include_router(portedShippingRouter, prefix="/catalog")

@@ -114,6 +114,19 @@ export default function StoreOwnerDashboardPage() {
         </section>
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Customers</p>
+          <h2 className="mt-2 text-2xl font-semibold">Manage your customers</h2>
+          <div className="mt-5">
+            <Link
+              href="/store-owner-dashboard/customers"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 transition hover:border-[#5b4ef9]/30 hover:text-[#5b4ef9]"
+            >
+              View all customers
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Finance & operations</p>
           <h2 className="mt-2 text-2xl font-semibold">Manage your store</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

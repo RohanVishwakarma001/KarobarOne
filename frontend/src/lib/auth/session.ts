@@ -20,6 +20,16 @@ export function getAccessToken(): string | null {
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+/** Swaps in a freshly-issued access token without touching the refresh token (POST /auth/refresh doesn't rotate it — see app/api/v1/endpoints/auth.py::refreshAccessToken). */
+export function updateAccessToken(accessToken: string): void {
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+}
+
 /**
  * Decodes the JWT payload client-side (base64 only, no signature check) purely
  * to drive UI routing decisions (e.g. "does this user have a store yet?").

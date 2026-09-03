@@ -50,3 +50,18 @@ class MessageResponse(BaseModel):
     """
     # Response detail string
     detail: str = Field(..., description="Descriptive status update message content")
+
+
+class APIResponse(BaseModel, Generic[T]):
+    """
+    Standard success envelope every active endpoint should return.
+
+    Kept separate from the error envelope in app.core.exceptions (which already
+    ships `{"error": {"code", "message", "details"}}` for every raised
+    AppException/validation error) rather than replacing it — that shape is
+    relied on by existing error handling, so this only adds the matching
+    `success` field there instead of restructuring it. See appExceptionHandler.
+    """
+    success: bool = Field(default=True, description="Always true on this envelope; failures use the error envelope instead")
+    data: T = Field(..., description="The actual response payload")
+    message: str = Field(default="Success", description="Human-readable status message")

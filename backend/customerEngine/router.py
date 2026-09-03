@@ -173,7 +173,10 @@ async def activateAccount(customerId: UUID, payload: AccountActivationRequest, d
 
 
 # ── CUSTOMER PROFILES (CRUD) ──────────────────
-@customerEngineRouter.get("/customers/{customerId}", response_model=CustomerResponse)
+# DEPRECATED: duplicates GET/PATCH /api/v1/customers/{id}, which is the ACTIVE
+# customer-profile router (tenant-scoped, staff-authenticated). Kept live for
+# backward compatibility, not for new integrations. See docs/api-mapping/customers.md.
+@customerEngineRouter.get("/customers/{customerId}", response_model=CustomerResponse, deprecated=True)
 async def getCustomerProfile(customerId: UUID, dbSession: AsyncSession = Depends(getDb)):
     """
     Retrieve customer details.
@@ -190,7 +193,9 @@ async def getCustomerProfile(customerId: UUID, dbSession: AsyncSession = Depends
     return customer
 
 
-@customerEngineRouter.put("/customers/{customerId}", response_model=CustomerResponse)
+# DEPRECATED: duplicates PATCH /api/v1/customers/{id}. Kept live for backward
+# compatibility, not for new integrations. See docs/api-mapping/customers.md.
+@customerEngineRouter.put("/customers/{customerId}", response_model=CustomerResponse, deprecated=True)
 async def updateCustomerProfile(customerId: UUID, updateData: CustomerUpdate, dbSession: AsyncSession = Depends(getDb)):
     """
     Update profile fields with duplicate validation.
@@ -272,7 +277,10 @@ async def uploadProfileImage(customerId: UUID, file: UploadFile = File(...), dbS
 
 
 # ── CUSTOMER ADDRESSES (CRUD) ─────────────────
-@customerEngineRouter.post("/customers/{customerId}/addresses", response_model=AddressResponse, status_code=status.HTTP_201_CREATED)
+# DEPRECATED (all four routes below): duplicate the ACTIVE /api/v1/addresses/*
+# router (app/api/v1/endpoints/customerAddresses.py). Kept live for backward
+# compatibility, not for new integrations. See docs/api-mapping/customers.md.
+@customerEngineRouter.post("/customers/{customerId}/addresses", response_model=AddressResponse, status_code=status.HTTP_201_CREATED, deprecated=True)
 async def createAddress(customerId: UUID, addressData: AddressCreate, dbSession: AsyncSession = Depends(getDb)):
     """
     Add a new shipping or billing address. Manages default switching safely.
@@ -318,7 +326,7 @@ async def createAddress(customerId: UUID, addressData: AddressCreate, dbSession:
     return new_address
 
 
-@customerEngineRouter.get("/customers/{customerId}/addresses", response_model=list[AddressResponse])
+@customerEngineRouter.get("/customers/{customerId}/addresses", response_model=list[AddressResponse], deprecated=True)
 async def listAddresses(customerId: UUID, dbSession: AsyncSession = Depends(getDb)):
     """
     List all active addresses of a customer.
@@ -332,7 +340,7 @@ async def listAddresses(customerId: UUID, dbSession: AsyncSession = Depends(getD
     return result.scalars().all()
 
 
-@customerEngineRouter.put("/addresses/{addressId}", response_model=AddressResponse)
+@customerEngineRouter.put("/addresses/{addressId}", response_model=AddressResponse, deprecated=True)
 async def updateAddress(addressId: UUID, updateData: AddressUpdate, dbSession: AsyncSession = Depends(getDb)):
     """
     Update details of an address. Manages default switching safely.
@@ -391,7 +399,7 @@ async def updateAddress(addressId: UUID, updateData: AddressUpdate, dbSession: A
     return address
 
 
-@customerEngineRouter.delete("/addresses/{addressId}")
+@customerEngineRouter.delete("/addresses/{addressId}", deprecated=True)
 async def deleteAddress(addressId: UUID, dbSession: AsyncSession = Depends(getDb)):
     """
     Soft delete a customer address.

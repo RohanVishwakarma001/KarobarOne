@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Boolean,
     Integer,
+    SmallInteger,
     BigInteger,
     Float,
     Text,
@@ -118,6 +119,16 @@ class Category(Base):
     slug = Column("category_slug", String(100), nullable=False)
     parentId = Column("parent_category_id", UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     categoryType = Column("category_type", String(50), default="PRODUCT", nullable=False)
+    # These five are NOT NULL with no DB-level default (verified against the live
+    # table) but were never mapped here, so every Category(...) insert — including
+    # the auto-created "default category" in products.py/attributes.py — was an
+    # unconditional IntegrityError. Defaults below mirror ShippingProfile/MediaFile's
+    # analogous columns elsewhere in this file (isActive=True, approvalStatus default).
+    displayOrder = Column("display_order", SmallInteger, default=0, nullable=False)
+    levelNumber = Column("level_number", SmallInteger, default=0, nullable=False)
+    approvalStatus = Column("approval_status", String(50), default="APPROVED", nullable=False)
+    isSystemCategory = Column("is_system_category", Boolean, default=False, nullable=False)
+    isActive = Column("is_active", Boolean, default=True, nullable=False)
     createdBy = Column("created_by", UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     createdAt = Column("created_at", TIMESTAMP, server_default=func.now())
     updatedAt = Column("updated_at", TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -269,7 +280,13 @@ class Variant(Base):
     createdAt = Column("created_at", TIMESTAMP, server_default=func.now())
     updatedAt = Column("updated_at", TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
-    product = relationship("Product", back_populates="variants")
+    product = relationship("Product", back_populates="variants", lazy="selectin")
+    images = relationship("ProductImage", back_populates="variant", cascade="all, delete-orphan")
+
+    @property
+    def tenantId(self):
+        """Variants have no tenant_id column of their own — derived from the parent product, same pattern as Attribute.tenantId below."""
+        return self.product.tenantId if self.product else None
 
 
 # ─────────────────────────────────────────────
@@ -339,6 +356,12 @@ class ProductImage(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     productId = Column("entity_id", UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    # Optional: scopes an image to one specific variant (e.g. the red/M photo)
+    # rather than the whole product. entity_type/entity_id stay PRODUCT-only —
+    # they predate variants and have a hard FK to products.id, not a real
+    # polymorphic association — so this is a separate, additive nullable FK
+    # rather than trying to repurpose entity_id/entity_type for variants too.
+    variantId = Column("variant_id", UUID(as_uuid=True), ForeignKey("product_variants.id", ondelete="CASCADE"), nullable=True)
     mediaFileId = Column("media_file_id", DialectUUIDOrString, nullable=False)
     altText = Column("alt_text_override", String(255), nullable=True)
     isPrimary = Column("is_primary", Boolean, default=False, nullable=False)
@@ -360,6 +383,7 @@ class ProductImage(Base):
     updatedAt = Column("updated_at", TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     product = relationship("Product", back_populates="images")
+    variant = relationship("Variant", back_populates="images", foreign_keys=[variantId], lazy="selectin")
     mediaFile = relationship("MediaFile", foreign_keys=[mediaFileId], primaryjoin="MediaFile.id == foreign(ProductImage.mediaFileId)", uselist=False, lazy="selectin")
 
     @property

@@ -27,7 +27,12 @@ class Settings(BaseSettings):
     debug: bool = False
     logLevel: str = "INFO"
     apiPrefix: str = "/api/v1"
-    corsOrigins: str = "http://localhost:3000"
+    # Default includes the deployed Vercel frontend so the two stay connected
+    # even if Render's own env var isn't set — but set `corsOrigins` in
+    # Render's dashboard explicitly for production; a code default is a
+    # fallback, not the right place to manage this long-term (e.g. it can't
+    # be changed without a redeploy if the frontend's URL ever changes).
+    corsOrigins: str = "http://localhost:3000,https://karobar-one-ten.vercel.app"
 
     # Default IDs
     defaultTenantId: str = "e2e56225-8da9-4414-9d71-d31f368d9ac7"

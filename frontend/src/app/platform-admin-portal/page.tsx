@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  Activity,
   AlertTriangle,
   ArrowLeft,
   Building2,
@@ -227,6 +228,13 @@ export default function PlatformAdminPortalPage() {
             >
               <Sparkles className="size-4" />
               SEO & AI
+            </Link>
+            <Link
+              href="/platform-admin-portal/system-health"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[#5b4ef9]/30 hover:text-[#5b4ef9]"
+            >
+              <Activity className="size-4" />
+              System Health
             </Link>
             <Link
               href="/"

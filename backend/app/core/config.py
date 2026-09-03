@@ -69,6 +69,19 @@ class Settings(BaseSettings):
     razorpayKeySecret: str = ""
     razorpayWebhookSecret: str = ""
 
+    # ──────────────────────────────────────
+    # Redis (app/core/redisClient.py). Left blank means every Redis-backed
+    # feature (health check, distributed rate limiting) reports itself as
+    # "not_configured" and falls back to an in-process equivalent rather than
+    # pretending to be connected — same fail-honest posture as Razorpay above.
+    # ──────────────────────────────────────
+    redisUrl: str = ""
+
+    # ──────────────────────────────────────
+    # Rate limiting (app/core/rateLimiter.py)
+    # ──────────────────────────────────────
+    rateLimitPerMinute: int = 120
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

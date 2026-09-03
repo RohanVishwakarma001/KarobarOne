@@ -31,8 +31,11 @@ from app.core.exceptions import (
     unhandledExceptionHandler,
     validationExceptionHandler,
 )
+from app.core.auditMiddleware import AuditLogMiddleware
 from app.core.logging import setupLogging
 from app.core.middleware import RequestIDMiddleware, RequestTimingMiddleware
+from app.core.rateLimiter import RateLimitMiddleware
+from app.core.securityHeaders import SecurityHeadersMiddleware
 from app.core.tenantResolver import TenantMiddleware
 from app.db.session import getEngine
 
@@ -121,10 +124,21 @@ def createApp() -> FastAPI:
     )
 
 
-    # ── Middleware (order matters — outermost first) ──
+    # ── Middleware ──
+    # Starlette executes the LAST-added middleware first (outermost) — so
+    # this list reads innermost-to-outermost top-to-bottom:
+    #   AuditLog -> RequestTiming -> RequestID -> Tenant -> RateLimit -> CORS -> SecurityHeaders
+    # i.e. actual request order is SecurityHeaders(only on the way out) ->
+    # CORS -> RateLimit -> Tenant -> RequestID -> RequestTiming -> AuditLog -> routes.
+    # CORS sits outside RateLimit so browser preflight (OPTIONS) is answered
+    # by CORSMiddleware directly, never counted against the rate limit.
+    # SecurityHeaders is outermost so its headers land on every response,
+    # including a 429 from RateLimit or a CORS rejection.
+    app.add_middleware(AuditLogMiddleware)
     app.add_middleware(RequestTimingMiddleware)
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(TenantMiddleware)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.corsOriginsList,
@@ -132,6 +146,7 @@ def createApp() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # ── Exception Handlers ──
     from sqlalchemy.exc import IntegrityError

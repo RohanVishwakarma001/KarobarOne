@@ -298,3 +298,91 @@ export type WebsiteAIContent = {
 export function generateWebsiteAIContent(input: WebsiteAIGenerateRequest): Promise<WebsiteAIContent> {
   return corePost<WebsiteAIContent>("/website-ai/generate", input);
 }
+
+// ============================================================================
+// Health & Observability (Priority 6) — mirrors app/api/v1/endpoints/health.py
+// ============================================================================
+
+export type SubsystemStatus = {
+  status: "healthy" | "unhealthy" | "not_configured";
+  latencyMs?: number;
+  error?: string;
+  pool?: { size: number; checkedOut: number; overflow: number };
+};
+
+export type FullHealthCheck = {
+  status: "healthy" | "unhealthy";
+  appName: string;
+  version: string;
+  timestamp: string;
+  checks: {
+    database: SubsystemStatus;
+    redis: SubsystemStatus;
+    worker: SubsystemStatus;
+  };
+};
+
+/** Unlike every other client in this file, health checks read status from the response itself (200 or 503 are both "successful" fetches) rather than throwing on !ok. */
+export async function getFullHealth(): Promise<FullHealthCheck> {
+  return coreGet<FullHealthCheck>("/health/full");
+}
+
+// ============================================================================
+// Audit Logs — mirrors app.schemas.approvals.AuditLogResponse
+// ============================================================================
+
+export type AuditLogEntry = {
+  id: string;
+  tenantId: string | null;
+  entityType: string;
+  entityId: string;
+  actionType: string;
+  oldValue: unknown;
+  newValue: unknown;
+  changedFields: unknown;
+  performedBy: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+};
+
+export type AuditLogFilters = {
+  tenantId?: string;
+  entityType?: string;
+  actionType?: string;
+  performedBy?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogEntry[]> {
+  const params = new URLSearchParams();
+  if (filters.tenantId) params.set("tenantId", filters.tenantId);
+  if (filters.entityType) params.set("entityType", filters.entityType);
+  if (filters.actionType) params.set("actionType", filters.actionType);
+  if (filters.performedBy) params.set("performedBy", filters.performedBy);
+  params.set("limit", String(filters.limit ?? 50));
+  params.set("offset", String(filters.offset ?? 0));
+  return coreGet<AuditLogEntry[]>(`/audit-logs/?${params.toString()}`);
+}
+
+// ============================================================================
+// Website Publish Logs — mirrors app.schemas.websitePublishLog
+// ============================================================================
+
+export type WebsitePublishLog = {
+  id: string;
+  storeId: string;
+  deploymentId: string | null;
+  action: string;
+  status: string;
+  version: string | null;
+  message: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+};
+
+/** No global "all stores" endpoint exists (app/api/v1/endpoints/websitePublishLogs.py only lists per-store) — callers look up one store at a time. */
+export function listWebsitePublishLogs(storeId: string): Promise<WebsitePublishLog[]> {
+  return coreGet<WebsitePublishLog[]>(`/website-publish-logs/store/${storeId}`);
+}

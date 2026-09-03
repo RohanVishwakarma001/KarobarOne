@@ -59,6 +59,7 @@ from app.api.v1.endpoints import websiteAIGeneration
 
 from app.api.v1.endpoints import domainVerification
 from app.api.v1.endpoints import cart, orders, payments
+from app.api.v1.endpoints import deployment
 
 apiRouter = APIRouter()
 
@@ -153,6 +154,9 @@ apiRouter.include_router(entityVersions.router)
 apiRouter.include_router(auditLogs.router)
 apiRouter.include_router(statusHistory.router)
 apiRouter.include_router(reviewQueue.router)
+
+# Deployment (Priority 6 — cache invalidation)
+apiRouter.include_router(deployment.router)
 
 # Live Chat (HTTP + Websocket is included in main.py directly or here)
 apiRouter.include_router(chatAuth.router)

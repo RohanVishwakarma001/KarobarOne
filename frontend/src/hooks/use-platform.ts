@@ -10,16 +10,20 @@ import {
   downgradeTenantPlan,
   generateAiSeoSuggestions,
   generateWebsiteAIContent,
+  getFullHealth,
   getTenantPlan,
   grantStoreStaffPermission,
+  listAuditLogs,
   listPermissions,
   listPlans,
   listRoles,
   listStoreStaffPermissions,
   listTenants,
+  listWebsitePublishLogs,
   revokeStoreStaffPermission,
   upgradeTenantPlan,
   type AiSeoSuggestionRequest,
+  type AuditLogFilters,
   type KeywordDensityRequest,
   type SeoAuditRequest,
   type SeoScoreRequest,
@@ -45,6 +49,9 @@ export const platformKeys = {
   permissions: () => ["platform", "permissions"] as const,
   storeStaffPermissions: (userId: string, storeId: string) =>
     ["platform", "store-staff-permissions", userId, storeId] as const,
+  fullHealth: () => ["platform", "health", "full"] as const,
+  auditLogs: (filters: AuditLogFilters) => ["platform", "audit-logs", filters] as const,
+  publishLogs: (storeId: string) => ["platform", "publish-logs", storeId] as const,
 };
 
 // ============================================================================
@@ -213,5 +220,34 @@ export function useGenerateAIContent() {
     mutationFn: (input: WebsiteAIGenerateRequest) => generateWebsiteAIContent(input),
     onSuccess: () => toast.success("Draft generated."),
     onError: (err) => toast.error(errorMessage(err, "Couldn't generate content.")),
+  });
+}
+
+// ============================================================================
+// System Health & Audit Viewer
+// ============================================================================
+
+export function useFullHealth() {
+  return useQuery({
+    queryKey: platformKeys.fullHealth(),
+    queryFn: () => getFullHealth(),
+    // Polled, not one-shot — this backs the dashboard's live uptime badges.
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAuditLogs(filters: AuditLogFilters) {
+  return useQuery({
+    queryKey: platformKeys.auditLogs(filters),
+    queryFn: () => listAuditLogs(filters),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useWebsitePublishLogs(storeId: string | null) {
+  return useQuery({
+    queryKey: platformKeys.publishLogs(storeId ?? ""),
+    queryFn: () => listWebsitePublishLogs(storeId as string),
+    enabled: Boolean(storeId),
   });
 }
